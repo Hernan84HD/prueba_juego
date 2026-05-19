@@ -558,3 +558,196 @@ input:checked + .slider:before {
     background-color: var(--neon-cyan);
     box-shadow: 0 0 8px var(--neon-cyan);
 }
+
+/* GPS Minimap Container (Racing Edition) */
+#gpsContainer {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 50;
+    background: rgba(5, 5, 12, 0.75);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(0, 240, 255, 0.35);
+    border-radius: 14px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.25), inset 0 0 10px rgba(0, 240, 255, 0.1);
+    pointer-events: none;
+    width: 146px;
+}
+
+.gps-header {
+    font-family: var(--cyber-font-hud);
+    font-size: 8px;
+    color: var(--neon-cyan);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 5px rgba(0, 240, 255, 0.6);
+    margin-bottom: 4px;
+    font-weight: 900;
+}
+
+#gpsCanvas {
+    background-color: #020208;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+}
+
+.gps-footer {
+    font-family: var(--cyber-font-hud);
+    font-size: 8px;
+    color: var(--neon-pink);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 0 5px rgba(255, 0, 127, 0.6);
+    margin-top: 4px;
+    font-weight: 700;
+    animation: gpsPulse 1s infinite alternate;
+}
+
+@keyframes gpsPulse {
+    0% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Steering Wheel Console (Racing Edition) */
+.steering-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 320px;
+    background: rgba(13, 13, 27, 0.7);
+    border: 2px solid rgba(0, 240, 255, 0.25);
+    border-radius: 40px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 20px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05);
+    backdrop-filter: blur(8px);
+}
+
+.steer-btn {
+    background: rgba(5, 5, 12, 0.9);
+    border-radius: 50%;
+    width: 68px;
+    height: 68px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    outline: none;
+}
+
+.steer-left {
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+.steer-right {
+    border: 2px solid var(--neon-pink);
+    color: var(--neon-pink);
+    box-shadow: 0 0 10px rgba(255, 0, 127, 0.2);
+}
+
+.steer-btn:hover {
+    transform: scale(1.05);
+}
+
+.steer-left:hover {
+    box-shadow: 0 0 18px var(--neon-cyan);
+    background: rgba(0, 240, 255, 0.1);
+}
+
+.steer-right:hover {
+    box-shadow: 0 0 18px var(--neon-pink);
+    background: rgba(255, 0, 127, 0.1);
+}
+
+.steer-btn:active {
+    transform: scale(0.92);
+}
+
+.steer-left:active {
+    background: var(--neon-cyan);
+    color: #000;
+}
+
+.steer-right:active {
+    background: var(--neon-pink);
+    color: #000;
+}
+
+.steer-arrow {
+    font-size: 20px;
+    font-weight: 900;
+}
+
+.steer-label {
+    font-family: var(--cyber-font-hud);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.steering-wheel {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    border: 3px double var(--neon-cyan);
+    position: relative;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle, #090914 0%, #030308 100%);
+    animation: steeringPulse 2.5s infinite alternate;
+}
+
+.steering-hub {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--neon-pink);
+    box-shadow: 0 0 10px var(--neon-pink);
+    position: relative;
+}
+
+/* Tres radios del volante estilo carreras */
+.steering-wheel::before {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 4px;
+    background: rgba(0, 240, 255, 0.4);
+    z-index: 1;
+}
+
+.steering-wheel::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 30px;
+    background: rgba(0, 240, 255, 0.4);
+    bottom: 8px;
+    z-index: 1;
+}
+
+@keyframes steeringPulse {
+    0% {
+        transform: scale(0.97) rotate(-2deg);
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+    }
+    100% {
+        transform: scale(1.03) rotate(2deg);
+        box-shadow: 0 0 18px rgba(0, 240, 255, 0.25);
+    }
+}
