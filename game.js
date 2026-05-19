@@ -31,8 +31,8 @@ let cameraYaw = Math.PI / 2; // Iniciar mirando a la derecha (+X)
 let targetAngle = Math.PI / 2;
 let currentLookAt = new THREE.Vector3(0, 0.45, 0);
 let currentRoll = 0;
-const CAM_DISTANCE = 5.8; // Distancia detrás del coche/cabeza
-const CAM_HEIGHT = 2.4;   // Altura sobre el coche/cabeza
+let CAM_DISTANCE = 5.8; // Distancia detrás del coche/cabeza
+let CAM_HEIGHT = 2.4;   // Altura sobre el coche/cabeza
 
 // Audio Context (Sintetizador Web Audio API)
 let audioCtx = null;
@@ -943,9 +943,22 @@ function onWindowResize() {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+    // Alejar la cámara en móviles para que la serpiente no se vea tan grande
+    if (width < 768) {
+        CAM_DISTANCE = 9.0;
+        CAM_HEIGHT = 4.0;
+    } else {
+        CAM_DISTANCE = 5.8;
+        CAM_HEIGHT = 2.4;
+    }
+
+    if (camera) {
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+    }
+    if (renderer) {
+        renderer.setSize(width, height);
+    }
 }
 
 // Dibujar Minimapa/GPS en 2D Canvas (con barrido de radar biológico selvático)
@@ -1207,6 +1220,8 @@ function animate(time) {
 // Inicializar el motor al cargar
 window.addEventListener('load', () => {
     init3D();
+    onWindowResize(); // Configurar cámara inicial según pantalla
+    window.addEventListener('resize', onWindowResize);
     requestAnimationFrame(animate);
     document.getElementById('record').innerText = highScore;
 
