@@ -45,6 +45,107 @@ function initAudio() {
     }
 }
 
+// Secuenciador BGM (Música Selvática Procedural)
+let bgmInterval = null;
+let nextNoteTime = 0;
+let current16thNote = 0;
+let lookahead = 25.0; // ms
+let scheduleAheadTime = 0.1; // s
+
+function nextNote() {
+    // El tempo aumenta al bajar gameSpeed (aumenta nivel)
+    const currentTempo = 200 - gameSpeed + 40; 
+    const secondsPerBeat = 60.0 / currentTempo;
+    nextNoteTime += 0.25 * secondsPerBeat;
+    current16thNote++;
+    if (current16thNote === 16) {
+        current16thNote = 0;
+    }
+}
+
+function scheduleNote(beatNumber, time) {
+    if (!audioCtx || (soundToggle && !soundToggle.checked)) return;
+    
+    // Kick profundo (Bongo Grave)
+    if (beatNumber === 0 || beatNumber === 10) {
+        playSynth(time, 120, 40, 0.2, 0.4, 'sine');
+    }
+    // Snare (Bongo Agudo / Madera)
+    if (beatNumber === 4 || beatNumber === 12) {
+        playSynth(time, 250, 100, 0.1, 0.2, 'square');
+    }
+    // Hihat (Insecto / Maracas)
+    if (beatNumber % 2 === 0) {
+        playSynth(time, 800, 600, 0.05, 0.05, 'triangle');
+    }
+    
+    // Melodía Ambiental (Marimba Selvática)
+    if (beatNumber === 0) playMarimba(time, 329.63); // E4
+    if (beatNumber === 3) playMarimba(time, 392.00); // G4
+    if (beatNumber === 6) playMarimba(time, 329.63); // E4
+    if (beatNumber === 10) playMarimba(time, 293.66); // D4
+    if (beatNumber === 14) playMarimba(time, 440.00); // A4
+}
+
+function playSynth(time, startFreq, endFreq, duration, vol, type) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startFreq, time);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, time + duration);
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+function playMarimba(time, freq) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, time);
+    gain.gain.setValueAtTime(0.1, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+    
+    // Armónico de madera
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(freq * 2, time);
+    osc2.connect(gain);
+    osc2.start(time);
+    osc2.stop(time + 0.3);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + 0.3);
+}
+
+function bgmScheduler() {
+    while (nextNoteTime < audioCtx.currentTime + scheduleAheadTime) {
+        scheduleNote(current16thNote, nextNoteTime);
+        nextNote();
+    }
+    bgmInterval = setTimeout(bgmScheduler, lookahead);
+}
+
+function startBGM() {
+    if (!audioCtx) initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (bgmInterval) return; // Ya sonando
+    nextNoteTime = audioCtx.currentTime + 0.05;
+    bgmScheduler();
+}
+
+function stopBGM() {
+    if (bgmInterval) {
+        clearTimeout(bgmInterval);
+        bgmInterval = null;
+    }
+}
+
 // Sintetizar sonidos acústicos orgánicos (Jungle)
 function playSound(type) {
     if (!audioCtx || (soundToggle && !soundToggle.checked)) return;
@@ -229,30 +330,129 @@ function createArena() {
 }
 
 function spawnJungleEnvironment(boardSize) {
-    const treeCount = 70;
-    const geomTrunk = new THREE.CylinderGeometry(0.3, 0.5, 4, 7);
-    const matTrunk = new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 1 });
+    // 1. Árboles Mejorados (Múltiples esferas superpuestas para la copa)
+    const treeCount = 80;
+    const geomTrunk = new THREE.CylinderGeometry(0.4, 0.7, 5, 8);
+    const matTrunk = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 1 });
     
-    const geomLeaves = new THREE.ConeGeometry(2, 5, 8);
-    const matLeaves = new THREE.MeshStandardMaterial({ color: 0x1b4d1b, roughness: 0.9 });
-
+    const matLeaves = new THREE.MeshStandardMaterial({ color: 0x1b4d1b, roughness: 0.9, flatShading: true });
+    
     for (let i = 0; i < treeCount; i++) {
-        // Random pos outside the board
         let x, z;
         do {
             x = (Math.random() - 0.5) * boardSize * 3;
             z = (Math.random() - 0.5) * boardSize * 3;
-        } while (Math.abs(x) < boardSize/2 + 1 && Math.abs(z) < boardSize/2 + 1);
+        } while (Math.abs(x) < boardSize/2 + 2 && Math.abs(z) < boardSize/2 + 2);
 
         const trunk = new THREE.Mesh(geomTrunk, matTrunk);
-        trunk.position.set(x, 2, z);
+        trunk.position.set(x, 2.5, z);
+        trunk.rotation.x = (Math.random() - 0.5) * 0.2;
+        trunk.rotation.z = (Math.random() - 0.5) * 0.2;
         trunk.castShadow = true;
         scene.add(trunk);
 
-        const leaves = new THREE.Mesh(geomLeaves, matLeaves);
-        leaves.position.set(x, 5.5 + Math.random(), z);
-        leaves.castShadow = true;
-        scene.add(leaves);
+        // Generar 3-5 esferas para la copa
+        const blobs = 3 + Math.floor(Math.random() * 3);
+        for(let j=0; j<blobs; j++) {
+            const size = 1.5 + Math.random() * 1.5;
+            const geomLeaves = new THREE.DodecahedronGeometry(size, 1);
+            const leaves = new THREE.Mesh(geomLeaves, matLeaves);
+            
+            const lx = x + (Math.random() - 0.5) * 2;
+            const lz = z + (Math.random() - 0.5) * 2;
+            const ly = 5 + (Math.random() * 3);
+            
+            leaves.position.set(lx, ly, lz);
+            leaves.castShadow = true;
+            scene.add(leaves);
+        }
+    }
+
+    // 2. Pasto Instanciado (High Performance)
+    const grassCount = 10000;
+    const grassGeom = new THREE.ConeGeometry(0.05, 0.4, 3);
+    grassGeom.translate(0, 0.2, 0); 
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.8 });
+    const grassMesh = new THREE.InstancedMesh(grassGeom, grassMat, grassCount);
+    grassMesh.receiveShadow = true;
+    
+    const dummy = new THREE.Object3D();
+    for(let i=0; i<grassCount; i++) {
+        const gx = (Math.random() - 0.5) * boardSize * 3;
+        const gz = (Math.random() - 0.5) * boardSize * 3;
+        
+        // Evitar pistas fuertemente
+        if (Math.abs(gx) < boardSize/2 && Math.abs(gz) < boardSize/2) {
+            continue; 
+        }
+        
+        dummy.position.set(gx, -0.2, gz);
+        dummy.rotation.y = Math.random() * Math.PI;
+        dummy.rotation.x = (Math.random() - 0.5) * 0.3;
+        dummy.rotation.z = (Math.random() - 0.5) * 0.3;
+        dummy.scale.set(1, 0.5 + Math.random(), 1);
+        dummy.updateMatrix();
+        grassMesh.setMatrixAt(i, dummy.matrix);
+    }
+    scene.add(grassMesh);
+    window.grassMesh = grassMesh; // Reference for animation
+
+    // 3. Animales/NPCs en los bordes
+    spawnAnimals(boardSize);
+}
+
+function spawnAnimals(boardSize) {
+    // Ranas/Piedras vivas
+    const frogCount = 15;
+    const frogGeom = new THREE.SphereGeometry(0.2, 8, 8);
+    const frogMat = new THREE.MeshStandardMaterial({ color: 0x556b2f, roughness: 0.9 });
+    
+    window.frogs = [];
+    
+    for(let i=0; i<frogCount; i++) {
+        const frog = new THREE.Mesh(frogGeom, frogMat);
+        let x, z;
+        do {
+            x = (Math.random() - 0.5) * boardSize * 1.5;
+            z = (Math.random() - 0.5) * boardSize * 1.5;
+        } while (Math.abs(x) < boardSize/2 && Math.abs(z) < boardSize/2);
+        
+        frog.position.set(x, -0.1, z);
+        frog.scale.set(1, 0.6, 1.2);
+        frog.castShadow = true;
+        scene.add(frog);
+        
+        window.frogs.push({
+            mesh: frog,
+            baseY: -0.1,
+            jumpTime: Math.random() * 100,
+            isJumping: false,
+            velY: 0
+        });
+    }
+
+    // Luciérnagas/Mariposas
+    const bugCount = 40;
+    const bugGeom = new THREE.SphereGeometry(0.06, 4, 4);
+    const bugMat = new THREE.MeshBasicMaterial({ color: 0xadff2f });
+    
+    window.bugs = [];
+    
+    for(let i=0; i<bugCount; i++) {
+        const bug = new THREE.Mesh(bugGeom, bugMat);
+        bug.position.set(
+            (Math.random() - 0.5) * boardSize * 1.5,
+            0.5 + Math.random() * 2,
+            (Math.random() - 0.5) * boardSize * 1.5
+        );
+        scene.add(bug);
+        
+        window.bugs.push({
+            mesh: bug,
+            timeOffset: Math.random() * 1000,
+            speed: 0.02 + Math.random() * 0.02,
+            baseY: bug.position.y
+        });
     }
 }
 
@@ -264,7 +464,7 @@ function gridToSpace(x, y) {
     };
 }
 
-// Crear la malla de la fruta en 3D (Mango selvático o Baya dorada)
+// Crear la malla de la fruta en 3D (Mango selvático o Baya dorada orgánica)
 function createFruitMesh() {
     while(fruitGroup.children.length > 0) {
         fruitGroup.remove(fruitGroup.children[0]);
@@ -272,30 +472,35 @@ function createFruitMesh() {
 
     const bodyColor = isSpecialFruit ? 0xffd700 : 0xff4500;
     
-    const bodyGeom = new THREE.SphereGeometry(0.4, 16, 16);
+    // Fruta deformada asimétricamente para mayor realismo (no es una esfera perfecta)
+    const bodyGeom = new THREE.SphereGeometry(0.42, 16, 16);
+    bodyGeom.scale(1, 0.85, 1.1);
+    
     const bodyMat = new THREE.MeshStandardMaterial({
         color: bodyColor,
         emissive: bodyColor,
-        emissiveIntensity: 0.3,
-        roughness: 0.4,
+        emissiveIntensity: 0.2,
+        roughness: 0.5,
         metalness: 0.1
     });
     const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.rotation.y = Math.random() * Math.PI; // Rotación inicial aleatoria
+    body.rotation.x = (Math.random() - 0.5) * 0.4;
     body.castShadow = true;
     fruitGroup.add(body);
 
-    const stemGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 8);
+    const stemGeom = new THREE.CylinderGeometry(0.03, 0.04, 0.2, 8);
     const stemMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a });
     const stem = new THREE.Mesh(stemGeom, stemMat);
     stem.position.y = 0.45;
     stem.rotation.z = -0.2;
     fruitGroup.add(stem);
 
-    const leafGeom = new THREE.ConeGeometry(0.12, 0.28, 4);
+    const leafGeom = new THREE.ConeGeometry(0.12, 0.35, 4);
     const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
     const leaf = new THREE.Mesh(leafGeom, leafMat);
-    leaf.position.set(0.1, 0.5, 0);
-    leaf.rotation.z = 0.8;
+    leaf.position.set(0.15, 0.5, 0);
+    leaf.rotation.z = 1.0;
     fruitGroup.add(leaf);
 
     updateFruitPosition3D();
@@ -310,80 +515,124 @@ function updateFruitPosition3D() {
     fruitLight.position.set(pos.x, 0.8, pos.z);
 }
 
-// Dibujar y actualizar los segmentos de la serpiente (Serpiente antigua de piedra/escamas)
+// Dibujar y actualizar la serpiente (Tubo continuo orgánico y cabeza detallada)
 function drawSnake3D() {
     while(snakeGroup.children.length > 0) {
         snakeGroup.remove(snakeGroup.children[0]);
     }
 
-    snake.forEach((part, index) => {
-        const isHead = index === 0;
+    if (snake.length === 0) return;
+
+    // 1. Cuerpo (TubeGeometry a lo largo de los puntos)
+    const points = snake.map(part => {
         const pos = gridToSpace(part.x, part.y);
-        
-        let geom, mat;
-
-        if (isHead) {
-            // Cabeza
-            geom = new THREE.BoxGeometry(0.95, 0.8, 0.95);
-            mat = new THREE.MeshStandardMaterial({
-                color: 0x1b4d1b, // Verde oscuro
-                roughness: 0.8,
-                metalness: 0.1
-            });
-        } else {
-            const scale = Math.max(0.55, 0.86 - (index * 0.015));
-            geom = new THREE.BoxGeometry(scale, scale * 0.9, scale);
-            
-            const ratio = index / snake.length;
-            const segmentColor = new THREE.Color().lerpColors(
-                new THREE.Color(0x2e8b57), // Verde medio
-                new THREE.Color(0x8fbc8f), // Verde claro amarillento
-                ratio
-            );
-
-            mat = new THREE.MeshStandardMaterial({
-                color: segmentColor,
-                roughness: 0.9,
-                metalness: 0.1
-            });
-        }
-
-        const segment = new THREE.Mesh(geom, mat);
-        segment.position.set(pos.x, 0.4, pos.z);
-        segment.castShadow = true;
-        segment.receiveShadow = true;
-
-        if (isHead) {
-            // Ojos dorados
-            const eyeGeom = new THREE.SphereGeometry(0.12, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-            
-            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
-            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
-
-            // Colocar en el sentido de conducción
-            if (direction === 'RIGHT') {
-                leftEye.position.set(0.42, 0.12, -0.28);
-                rightEye.position.set(0.42, 0.12, 0.28);
-            } else if (direction === 'LEFT') {
-                leftEye.position.set(-0.42, 0.12, 0.28);
-                rightEye.position.set(-0.42, 0.12, -0.28);
-            } else if (direction === 'UP') {
-                leftEye.position.set(-0.28, 0.12, -0.42);
-                rightEye.position.set(0.28, 0.12, -0.42);
-            } else if (direction === 'DOWN') {
-                leftEye.position.set(0.28, 0.12, 0.42);
-                rightEye.position.set(-0.28, 0.12, 0.42);
-            }
-
-            segment.add(leftEye);
-            segment.add(rightEye);
-
-            headLight.position.set(pos.x, 1.0, pos.z);
-        }
-
-        snakeGroup.add(segment);
+        return new THREE.Vector3(pos.x, 0.4, pos.z);
     });
+
+    // Añadir un punto extra si la longitud es 1 para que la curva sea válida
+    if (points.length === 1) {
+        let offsetX = 0, offsetZ = 0;
+        if (direction === 'RIGHT') offsetX = -CELL_SIZE;
+        if (direction === 'LEFT') offsetX = CELL_SIZE;
+        if (direction === 'UP') offsetZ = CELL_SIZE;
+        if (direction === 'DOWN') offsetZ = -CELL_SIZE;
+        points.push(new THREE.Vector3(points[0].x + offsetX, points[0].y, points[0].z + offsetZ));
+    }
+
+    const curve = new THREE.CatmullRomCurve3(points);
+    curve.tension = 0.5;
+
+    const tubularSegments = Math.max(20, snake.length * 4);
+    const radius = 0.45;
+    const radialSegments = 12;
+    const closed = false;
+
+    const tubeGeom = new THREE.TubeGeometry(curve, tubularSegments, radius, radialSegments, closed);
+    const tubeMat = new THREE.MeshStandardMaterial({
+        color: 0x2e8b57, // Verde bosque vibrante
+        roughness: 0.6,
+        metalness: 0.15,
+    });
+    
+    const tubeMesh = new THREE.Mesh(tubeGeom, tubeMat);
+    tubeMesh.castShadow = true;
+    tubeMesh.receiveShadow = true;
+    snakeGroup.add(tubeMesh);
+
+    // 1b. Cola cónica (Afinarse al final)
+    if (points.length > 1) {
+        const tailPos = points[points.length - 1];
+        const preTailPos = points[points.length - 2];
+        
+        const tailGeom = new THREE.ConeGeometry(0.45, 1.2, 12);
+        tailGeom.translate(0, 0.6, 0); // Para rotar desde la base
+        const tailMesh = new THREE.Mesh(tailGeom, tubeMat);
+        tailMesh.position.copy(tailPos);
+        
+        // Orientar
+        const dirVec = new THREE.Vector3().subVectors(tailPos, preTailPos).normalize();
+        const upAxis = new THREE.Vector3(0, 1, 0);
+        tailMesh.quaternion.setFromUnitVectors(upAxis, dirVec);
+        tailMesh.castShadow = true;
+        snakeGroup.add(tailMesh);
+    }
+
+    // 2. Cabeza (Esfera deformada como cráneo de reptil)
+    const headPos = gridToSpace(snake[0].x, snake[0].y);
+    const headGeom = new THREE.SphereGeometry(0.55, 16, 16);
+    headGeom.translate(0, 0.1, 0); // Desplazar centro
+
+    const headMat = new THREE.MeshStandardMaterial({
+        color: 0x1b4d1b, // Verde oscuro (más oscuro que el cuerpo)
+        roughness: 0.7,
+        metalness: 0.2
+    });
+    const headMesh = new THREE.Mesh(headGeom, headMat);
+    headMesh.position.set(headPos.x, 0.4, headPos.z);
+    
+    // Escalar para hacerla más achatada (como una serpiente)
+    headMesh.scale.set(1.1, 0.6, 1.1);
+    headMesh.castShadow = true;
+
+    // Orientar la cabeza completa hacia la dirección (frente es +Z local)
+    let headRotY = 0;
+    if (direction === 'RIGHT') headRotY = Math.PI/2;
+    if (direction === 'LEFT') headRotY = -Math.PI/2;
+    if (direction === 'UP') headRotY = Math.PI;
+    if (direction === 'DOWN') headRotY = 0;
+    headMesh.rotation.y = headRotY;
+
+    // Mandíbula inferior (Que se abre al comer)
+    const jawGeom = new THREE.SphereGeometry(0.52, 16, 16);
+    jawGeom.translate(0, -0.2, 0.2); // Posición pivot relativa
+    const jawMesh = new THREE.Mesh(jawGeom, headMat);
+    jawMesh.scale.set(1, 0.4, 0.9);
+    jawMesh.position.set(0, 0, -0.2); // Colocar
+    headMesh.add(jawMesh);
+    
+    // Guardar referencia global para animarla en el frame loop
+    window.snakeJaw = jawMesh;
+
+    // 3. Ojos dorados reptilianos
+    const eyeGeom = new THREE.SphereGeometry(0.12, 8, 8);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+    const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+    const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+
+    // Restaurar escala relativa
+    leftEye.scale.set(1/1.1, 1/0.6, 1/1.1);
+    rightEye.scale.set(1/1.1, 1/0.6, 1/1.1);
+
+    // Colocar ojos (frente es +Z)
+    leftEye.position.set(-0.3, 0.3, 0.35);
+    rightEye.position.set(0.3, 0.3, 0.35);
+
+    headMesh.add(leftEye);
+    headMesh.add(rightEye);
+    
+    snakeGroup.add(headMesh);
+    
+    headLight.position.set(headPos.x, 1.0, headPos.z);
 }
 
 // Crear explosión de hojas/polen orgánico
@@ -542,6 +791,8 @@ function moveSnake() {
         
         playSound(isSpecialFruit ? 'eat_special' : 'eat');
         
+        window.mouthOpenTimer = 15; // Iniciar animación de boca abierta
+        
         updateScore();
         generateNewFruit();
         
@@ -595,6 +846,7 @@ function generateNewFruit() {
 function triggerGameOver() {
     isGameOver = true;
     clearTimeout(gameTimeout);
+    stopBGM();
     
     playSound('gameover');
     cameraShakeIntensity = 1.6;
@@ -634,8 +886,10 @@ function togglePause() {
     if (isPaused) {
         pauseOverlay.classList.add('active');
         clearTimeout(gameTimeout);
+        stopBGM();
     } else {
         pauseOverlay.classList.remove('active');
+        startBGM();
         gameLoop();
     }
 }
@@ -673,6 +927,7 @@ function restartGame() {
     resetCameraPositionImmediate();
 
     clearTimeout(gameTimeout);
+    startBGM();
     gameLoop();
 }
 
@@ -897,6 +1152,49 @@ function animate(time) {
     // Actualizar partículas
     updateParticles();
 
+    // Animar NPCs (Bichos y Ranas)
+    if (window.bugs) {
+        window.bugs.forEach(bug => {
+            const t = time * bug.speed + bug.timeOffset;
+            bug.mesh.position.x += Math.sin(t) * 0.02;
+            bug.mesh.position.z += Math.cos(t * 0.8) * 0.02;
+            bug.mesh.position.y = bug.baseY + Math.sin(t * 2) * 0.2;
+        });
+    }
+    
+    if (window.frogs) {
+        window.frogs.forEach(frog => {
+            frog.jumpTime--;
+            if (frog.jumpTime <= 0 && !frog.isJumping) {
+                frog.isJumping = true;
+                frog.velY = 0.15; // Salto
+                frog.jumpTime = 100 + Math.random() * 200;
+            }
+            
+            if (frog.isJumping) {
+                frog.mesh.position.y += frog.velY;
+                frog.velY -= 0.01; // Gravedad
+                
+                if (frog.mesh.position.y <= frog.baseY) {
+                    frog.mesh.position.y = frog.baseY;
+                    frog.isJumping = false;
+                }
+            }
+        });
+    }
+
+    // Animar boca
+    if (window.mouthOpenTimer > 0) {
+        window.mouthOpenTimer--;
+        if (window.snakeJaw) {
+            window.snakeJaw.rotation.x = Math.PI / 6; // Abre la mandíbula hacia abajo
+        }
+    } else {
+        if (window.snakeJaw) {
+            window.snakeJaw.rotation.x *= 0.8; // Cierra suavemente
+        }
+    }
+
     // Dibujar el Minimapa / GPS 2D
     drawGPSMinimap(time);
 
@@ -911,4 +1209,25 @@ window.addEventListener('load', () => {
     init3D();
     requestAnimationFrame(animate);
     document.getElementById('record').innerText = highScore;
+
+    // Configuración Pantalla Completa
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const btnFullscreenStart = document.getElementById('btnFullscreenStart');
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.warn(`No se pudo activar pantalla completa: ${err.message}`);
+            });
+            if (btnFullscreen) btnFullscreen.innerText = "Salir Pantalla Completa";
+            if (btnFullscreenStart) btnFullscreenStart.innerHTML = "📺 Salir Pantalla Completa";
+        } else {
+            document.exitFullscreen();
+            if (btnFullscreen) btnFullscreen.innerText = "Pantalla Completa";
+            if (btnFullscreenStart) btnFullscreenStart.innerHTML = "📺 Activar Pantalla Completa";
+        }
+    }
+
+    if (btnFullscreen) btnFullscreen.addEventListener('click', toggleFullscreen);
+    if (btnFullscreenStart) btnFullscreenStart.addEventListener('click', toggleFullscreen);
 });
