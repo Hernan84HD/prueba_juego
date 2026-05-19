@@ -45,11 +45,10 @@ function initAudio() {
     }
 }
 
-// Sintetizar sonidos retro de arcade
+// Sintetizar sonidos acústicos orgánicos (Jungle)
 function playSound(type) {
     if (!audioCtx || (soundToggle && !soundToggle.checked)) return;
     
-    // Resume si está suspendido por políticas de autoejecución del navegador
     if (audioCtx.state === 'suspended') {
         audioCtx.resume();
     }
@@ -63,46 +62,60 @@ function playSound(type) {
     const now = audioCtx.currentTime;
 
     if (type === 'eat') {
+        // Bloque de madera / Marimba
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+    } else if (type === 'eat_special') {
+        // Campana mágica / Cristal
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+        gainNode.gain.setValueAtTime(0.2, now);
+        gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        
+        // Harmónico secundario
+        const osc2 = audioCtx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1600, now);
+        osc2.connect(gainNode);
+        osc2.start(now);
+        osc2.stop(now + 0.3);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else if (type === 'turn') {
+        // Ruido sutil (Hoja crujiendo / Viento)
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
-        gainNode.gain.setValueAtTime(0.15, now);
-        gainNode.gain.linearRampToValueAtTime(0.01, now + 0.15);
-        osc.start(now);
-        osc.stop(now + 0.15);
-    } else if (type === 'eat_special') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.exponentialRampToValueAtTime(1600, now + 0.25);
-        gainNode.gain.setValueAtTime(0.2, now);
-        gainNode.gain.linearRampToValueAtTime(0.01, now + 0.25);
-        osc.start(now);
-        osc.stop(now + 0.25);
-    } else if (type === 'turn') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.setValueAtTime(100, now + 0.03);
-        gainNode.gain.setValueAtTime(0.08, now);
+        osc.frequency.linearRampToValueAtTime(80, now + 0.05);
+        gainNode.gain.setValueAtTime(0.05, now);
         gainNode.gain.linearRampToValueAtTime(0.01, now + 0.05);
         osc.start(now);
         osc.stop(now + 0.05);
     } else if (type === 'level') {
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.setValueAtTime(400, now + 0.1);
-        osc.frequency.setValueAtTime(600, now + 0.2);
-        gainNode.gain.setValueAtTime(0.1, now);
+        // Tambor tribal ascendente
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.setValueAtTime(150, now + 0.1);
+        osc.frequency.setValueAtTime(250, now + 0.2);
+        gainNode.gain.setValueAtTime(0.3, now);
         gainNode.gain.linearRampToValueAtTime(0.01, now + 0.35);
         osc.start(now);
         osc.stop(now + 0.35);
     } else if (type === 'gameover') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.linearRampToValueAtTime(50, now + 0.6);
-        gainNode.gain.setValueAtTime(0.25, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        // Tambor grave descendente
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.8);
+        gainNode.gain.setValueAtTime(0.4, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
         osc.start(now);
-        osc.stop(now + 0.6);
+        osc.stop(now + 0.8);
     }
 }
 
@@ -114,7 +127,7 @@ function init3D() {
 
     // 1. Escena
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05050c, 0.035);
+    scene.fog = new THREE.FogExp2(0x112b1c, 0.04);
 
     // 2. Cámara (Perspectiva para tercera persona de conducción)
     camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
@@ -126,29 +139,29 @@ function init3D() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setClearColor(0x05050c, 1);
+    renderer.setClearColor(0x0a110a, 1);
     
     const canvasElement = document.getElementById('webglCanvas');
     if (canvasElement) canvasElement.remove();
     renderer.domElement.id = 'webglCanvas';
     container.appendChild(renderer.domElement);
 
-    // 4. Luces
-    const ambientLight = new THREE.AmbientLight(0x1a1a3a, 1.2);
+    // 4. Luces (Selva)
+    const ambientLight = new THREE.AmbientLight(0x2a3b2a, 1.5);
     scene.add(ambientLight);
 
-    dirLight = new THREE.DirectionalLight(0x00f0ff, 0.8);
-    dirLight.position.set(0, 20, 10);
+    dirLight = new THREE.DirectionalLight(0xfff0c0, 1.2);
+    dirLight.position.set(10, 20, 10);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    // Luces dinámicas neón
-    headLight = new THREE.PointLight(0x39ff14, 3.0, 9, 1.5);
+    // Luces dinámicas
+    headLight = new THREE.PointLight(0xffd700, 2.0, 12, 1.5);
     scene.add(headLight);
 
-    fruitLight = new THREE.PointLight(0xff007f, 3.5, 10, 1.5);
+    fruitLight = new THREE.PointLight(0xff4500, 3.0, 10, 1.5);
     scene.add(fruitLight);
 
     // 5. Plataforma
@@ -183,36 +196,64 @@ function resetCameraPositionImmediate() {
     currentRoll = 0;
 }
 
-// Crear la plataforma flotante 3D del juego
+// Crear la plataforma flotante 3D del juego (Jungle Base)
 function createArena() {
     const size = GRID_SIZE * CELL_SIZE;
 
-    // Plataforma base (cristal oscuro)
+    // Plataforma base (Tierra Oscura / Musgo)
     const platformGeom = new THREE.BoxGeometry(size, 0.4, size);
     const platformMat = new THREE.MeshStandardMaterial({
-        color: 0x0a0a1a,
-        roughness: 0.1,
-        metalness: 0.8,
-        transparent: true,
-        opacity: 0.85
+        color: 0x1a2e1a,
+        roughness: 0.9,
+        metalness: 0.1
     });
     const platform = new THREE.Mesh(platformGeom, platformMat);
     platform.position.y = -0.2;
     platform.receiveShadow = true;
     scene.add(platform);
 
-    // Rejilla de neón rosa
-    const gridHelper = new THREE.GridHelper(size, GRID_SIZE, 0xff007f, 0x0d0d26);
+    // Rejilla de ruinas (piedra inca/maya)
+    const gridHelper = new THREE.GridHelper(size, GRID_SIZE, 0x2e8b57, 0x112b1c);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 
-    // Marco exterior brillante cian
-    const borderGeom = new THREE.BoxGeometry(size + 0.3, 0.5, size + 0.3);
-    const edges = new THREE.EdgesGeometry(borderGeom);
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x00f0ff, linewidth: 2 });
-    const borderLines = new THREE.LineSegments(edges, lineMat);
-    borderLines.position.y = -0.15;
-    scene.add(borderLines);
+    // Marco exterior de piedra antigua
+    const borderGeom = new THREE.BoxGeometry(size + 0.6, 1.0, size + 0.6);
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0x2a2e2a, roughness: 1 });
+    const borderBox = new THREE.Mesh(borderGeom, borderMat);
+    borderBox.position.y = -0.3;
+    borderBox.receiveShadow = true;
+    scene.add(borderBox);
+
+    spawnJungleEnvironment(size);
+}
+
+function spawnJungleEnvironment(boardSize) {
+    const treeCount = 70;
+    const geomTrunk = new THREE.CylinderGeometry(0.3, 0.5, 4, 7);
+    const matTrunk = new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 1 });
+    
+    const geomLeaves = new THREE.ConeGeometry(2, 5, 8);
+    const matLeaves = new THREE.MeshStandardMaterial({ color: 0x1b4d1b, roughness: 0.9 });
+
+    for (let i = 0; i < treeCount; i++) {
+        // Random pos outside the board
+        let x, z;
+        do {
+            x = (Math.random() - 0.5) * boardSize * 3;
+            z = (Math.random() - 0.5) * boardSize * 3;
+        } while (Math.abs(x) < boardSize/2 + 1 && Math.abs(z) < boardSize/2 + 1);
+
+        const trunk = new THREE.Mesh(geomTrunk, matTrunk);
+        trunk.position.set(x, 2, z);
+        trunk.castShadow = true;
+        scene.add(trunk);
+
+        const leaves = new THREE.Mesh(geomLeaves, matLeaves);
+        leaves.position.set(x, 5.5 + Math.random(), z);
+        leaves.castShadow = true;
+        scene.add(leaves);
+    }
 }
 
 // Convertir coordenadas de matriz local en coordenadas de espacio 3D
@@ -223,37 +264,37 @@ function gridToSpace(x, y) {
     };
 }
 
-// Crear la malla de la fruta en 3D
+// Crear la malla de la fruta en 3D (Mango selvático o Baya dorada)
 function createFruitMesh() {
     while(fruitGroup.children.length > 0) {
         fruitGroup.remove(fruitGroup.children[0]);
     }
 
-    const color = isSpecialFruit ? 0xfff01f : 0xff007f;
+    const bodyColor = isSpecialFruit ? 0xffd700 : 0xff4500;
     
-    const bodyGeom = new THREE.DodecahedronGeometry(0.45, 1);
+    const bodyGeom = new THREE.SphereGeometry(0.4, 16, 16);
     const bodyMat = new THREE.MeshStandardMaterial({
-        color: color,
-        emissive: color,
-        emissiveIntensity: 0.35,
-        roughness: 0.2,
-        metalness: 0.9
+        color: bodyColor,
+        emissive: bodyColor,
+        emissiveIntensity: 0.3,
+        roughness: 0.4,
+        metalness: 0.1
     });
     const body = new THREE.Mesh(bodyGeom, bodyMat);
     body.castShadow = true;
     fruitGroup.add(body);
 
     const stemGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 8);
-    const stemMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.8 });
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a });
     const stem = new THREE.Mesh(stemGeom, stemMat);
-    stem.position.y = 0.5;
+    stem.position.y = 0.45;
     stem.rotation.z = -0.2;
     fruitGroup.add(stem);
 
     const leafGeom = new THREE.ConeGeometry(0.12, 0.28, 4);
-    const leafMat = new THREE.MeshStandardMaterial({ color: 0x39ff14, roughness: 0.6 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
     const leaf = new THREE.Mesh(leafGeom, leafMat);
-    leaf.position.set(0.1, 0.55, 0);
+    leaf.position.set(0.1, 0.5, 0);
     leaf.rotation.z = 0.8;
     fruitGroup.add(leaf);
 
@@ -265,11 +306,11 @@ function updateFruitPosition3D() {
     const pos = gridToSpace(fruit.x, fruit.y);
     fruitGroup.position.set(pos.x, 0.45, pos.z);
     
-    fruitLight.color.setHex(isSpecialFruit ? 0xfff01f : 0xff007f);
+    fruitLight.color.setHex(isSpecialFruit ? 0xffd700 : 0xff4500);
     fruitLight.position.set(pos.x, 0.8, pos.z);
 }
 
-// Dibujar y actualizar los segmentos de la serpiente
+// Dibujar y actualizar los segmentos de la serpiente (Serpiente antigua de piedra/escamas)
 function drawSnake3D() {
     while(snakeGroup.children.length > 0) {
         snakeGroup.remove(snakeGroup.children[0]);
@@ -282,16 +323,12 @@ function drawSnake3D() {
         let geom, mat;
 
         if (isHead) {
-            // Cabeza (Aerodinámica estilo bólido)
+            // Cabeza
             geom = new THREE.BoxGeometry(0.95, 0.8, 0.95);
-            mat = new THREE.MeshPhysicalMaterial({
-                color: 0x39ff14,
-                emissive: 0x39ff14,
-                emissiveIntensity: 0.25,
-                metalness: 0.8,
-                roughness: 0.1,
-                clearcoat: 1.0,
-                clearcoatRoughness: 0.1
+            mat = new THREE.MeshStandardMaterial({
+                color: 0x1b4d1b, // Verde oscuro
+                roughness: 0.8,
+                metalness: 0.1
             });
         } else {
             const scale = Math.max(0.55, 0.86 - (index * 0.015));
@@ -299,15 +336,15 @@ function drawSnake3D() {
             
             const ratio = index / snake.length;
             const segmentColor = new THREE.Color().lerpColors(
-                new THREE.Color(0x39ff14),
-                new THREE.Color(0x00f0ff),
+                new THREE.Color(0x2e8b57), // Verde medio
+                new THREE.Color(0x8fbc8f), // Verde claro amarillento
                 ratio
             );
 
             mat = new THREE.MeshStandardMaterial({
                 color: segmentColor,
-                roughness: 0.2,
-                metalness: 0.8
+                roughness: 0.9,
+                metalness: 0.1
             });
         }
 
@@ -317,9 +354,9 @@ function drawSnake3D() {
         segment.receiveShadow = true;
 
         if (isHead) {
-            // Faros delanteros brillantes de neón
+            // Ojos dorados
             const eyeGeom = new THREE.SphereGeometry(0.12, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
             
             const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
             const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
@@ -349,12 +386,12 @@ function drawSnake3D() {
     });
 }
 
-// Crear explosión de partículas 3D
+// Crear explosión de hojas/polen orgánico
 function spawnParticles(x, z, special = false) {
-    const particleCount = special ? 35 : 20;
-    const color = special ? 0xfff01f : 0xff007f;
+    const particleCount = special ? 40 : 25;
+    const color = special ? 0xffd700 : 0x8fbc8f;
 
-    const geom = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const geom = new THREE.BoxGeometry(0.15, 0.05, 0.15); // Hojas
     const mat = new THREE.MeshBasicMaterial({ color: color });
 
     for (let i = 0; i < particleCount; i++) {
@@ -364,7 +401,7 @@ function spawnParticles(x, z, special = false) {
             0.5,
             z + (Math.random() * 0.4 - 0.2)
         );
-
+        mesh.rotation.set(Math.random(), Math.random(), Math.random());
         scene.add(mesh);
 
         const angle = Math.random() * Math.PI * 2;
@@ -377,9 +414,14 @@ function spawnParticles(x, z, special = false) {
                 Math.random() * 0.08 + 0.05,
                 Math.sin(angle) * speed
             ),
-            gravity: -0.005,
-            life: 30 + Math.floor(Math.random() * 15),
-            maxLife: 45
+            rotation: new THREE.Vector3(
+                Math.random() * 0.2,
+                Math.random() * 0.2,
+                Math.random() * 0.2
+            ),
+            gravity: -0.004,
+            life: 30 + Math.floor(Math.random() * 20),
+            maxLife: 50
         });
     }
 }
@@ -390,6 +432,12 @@ function updateParticles() {
         const p = particlesArray[i];
         p.velocity.y += p.gravity;
         p.mesh.position.add(p.velocity);
+        
+        if (p.rotation) {
+            p.mesh.rotation.x += p.rotation.x;
+            p.mesh.rotation.y += p.rotation.y;
+            p.mesh.rotation.z += p.rotation.z;
+        }
         
         p.life--;
         const ratio = p.life / p.maxLife;
@@ -645,7 +693,7 @@ function onWindowResize() {
     renderer.setSize(width, height);
 }
 
-// Dibujar Minimapa/GPS en 2D Canvas (con barrido de radar holográfico)
+// Dibujar Minimapa/GPS en 2D Canvas (con barrido de radar biológico selvático)
 function drawGPSMinimap(time) {
     const canvas = document.getElementById('gpsCanvas');
     if (!canvas) return;
@@ -657,13 +705,13 @@ function drawGPSMinimap(time) {
     const CY = H / 2;
     const R = W / 2 - 4; // Radio del visor de radar
 
-    // 1. Limpiar con fondo oscuro neón
-    ctx.fillStyle = '#02020a';
+    // 1. Limpiar con fondo verde selva muy oscuro
+    ctx.fillStyle = '#051005';
     ctx.fillRect(0, 0, W, H);
 
-    // 2. Dibujar círculos concéntricos de radar
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.12)';
-    ctx.lineWidth = 1;
+    // 2. Dibujar círculos concéntricos de brújula biológica
+    ctx.strokeStyle = 'rgba(46, 139, 87, 0.2)'; // Verde selva translúcido
+    ctx.lineWidth = 1.5;
     
     ctx.beginPath();
     ctx.arc(CX, CY, R, 0, Math.PI * 2);
@@ -677,53 +725,50 @@ function drawGPSMinimap(time) {
     ctx.arc(CX, CY, R * 0.33, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Líneas cruzadas de la mira del radar (Crosshairs)
+    // Marcas cardinales (N, S, E, O biológicas)
     ctx.beginPath();
     ctx.moveTo(CX - R, CY); ctx.lineTo(CX + R, CY);
     ctx.moveTo(CX, CY - R); ctx.lineTo(CX, CY + R);
     ctx.stroke();
 
-    // 3. Efecto de barrido de radar radial
+    // 3. Efecto de barrido de radar radial (Polen/Energía vital)
     const sweepAngle = (time * 0.0022) % (Math.PI * 2);
     const grad = ctx.createRadialGradient(CX, CY, 0, CX, CY, R);
-    grad.addColorStop(0, 'rgba(0, 240, 255, 0.05)');
-    grad.addColorStop(1, 'rgba(0, 240, 255, 0.01)');
+    grad.addColorStop(0, 'rgba(143, 188, 143, 0.08)');
+    grad.addColorStop(1, 'rgba(143, 188, 143, 0.01)');
     
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(CX, CY);
-    ctx.arc(CX, CY, R, sweepAngle - 0.25, sweepAngle);
+    ctx.arc(CX, CY, R, sweepAngle - 0.3, sweepAngle);
     ctx.lineTo(CX, CY);
     ctx.fill();
 
     // Dibujar línea del barrido
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+    ctx.strokeStyle = 'rgba(143, 188, 143, 0.4)'; // Verde claro
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(CX, CY);
     ctx.lineTo(CX + Math.cos(sweepAngle) * R, CY + Math.sin(sweepAngle) * R);
     ctx.stroke();
 
-    // Función auxiliar para mapear coordenadas de la cuadrícula a coordenadas de píxeles del radar
+    // Función auxiliar para mapear coordenadas
     function mapToRadar(gridX, gridY) {
-        // Normalizar de 0 a GRID_SIZE-1 a -1 a +1
         const nx = (gridX - (GRID_SIZE - 1) / 2) / (GRID_SIZE / 2);
         const ny = (gridY - (GRID_SIZE - 1) / 2) / (GRID_SIZE / 2);
-        
-        // Mapear al círculo
         return {
             x: CX + nx * (R - 6),
             y: CY + ny * (R - 6)
         };
     }
 
-    // 4. Dibujar ruta guía GPS del coche/cabeza a la fruta (Línea de navegación)
+    // 4. Dibujar ruta guía GPS (Rastro de esporas doradas)
     const head = snake[0];
     const headPos = mapToRadar(head.x, head.y);
     const targetPos = mapToRadar(fruit.x, fruit.y);
 
     if (hasStarted && !isGameOver) {
-        ctx.strokeStyle = 'rgba(255, 0, 127, 0.35)'; // Estela rosa neón discontinua
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)'; // Oro
         ctx.lineWidth = 1.5;
         ctx.setLineDash([3, 4]);
         ctx.beginPath();
@@ -733,9 +778,9 @@ function drawGPSMinimap(time) {
         ctx.setLineDash([]); // Reset
     }
 
-    // 5. Dibujar cuerpo de la serpiente en el radar (estela neón verde)
+    // 5. Dibujar cuerpo de la serpiente (Estela verde bosque)
     if (snake.length > 1) {
-        ctx.strokeStyle = 'rgba(57, 255, 20, 0.7)';
+        ctx.strokeStyle = 'rgba(46, 139, 87, 0.8)';
         ctx.lineWidth = 2.5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -749,13 +794,13 @@ function drawGPSMinimap(time) {
         ctx.stroke();
     }
 
-    // 6. Dibujar cabeza (Coche / Indicador cian)
-    ctx.fillStyle = '#00f0ff';
+    // 6. Dibujar cabeza (Indicador dorado)
+    ctx.fillStyle = '#ffd700';
     ctx.shadowBlur = 4;
-    ctx.shadowColor = '#00f0ff';
+    ctx.shadowColor = '#ffd700';
     ctx.beginPath();
     
-    // Dibujar un puntero triangular orientado en base a la dirección
+    // Dibujar un puntero triangular orientado
     const size = 5;
     ctx.save();
     ctx.translate(headPos.x, headPos.y);
@@ -767,16 +812,16 @@ function drawGPSMinimap(time) {
     if (direction === 'LEFT') headingAngle = -Math.PI / 2;
     
     ctx.rotate(headingAngle);
-    ctx.moveTo(0, -size * 1.5); // Punta del triángulo
+    ctx.moveTo(0, -size * 1.5); // Punta
     ctx.lineTo(-size, size);
     ctx.lineTo(size, size);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    ctx.shadowBlur = 0; // Reset shadow
+    ctx.shadowBlur = 0;
 
-    // 7. Dibujar fruta (Objetivo neón rosa parpadeante)
-    const fruitColor = isSpecialFruit ? '#fff01f' : '#ff007f';
+    // 7. Dibujar fruta (Objetivo ámbar parpadeante)
+    const fruitColor = isSpecialFruit ? '#fff01f' : '#ff8c00'; // Naranja oscuro o amarillo
     ctx.fillStyle = fruitColor;
     ctx.shadowBlur = 6;
     ctx.shadowColor = fruitColor;
@@ -786,7 +831,7 @@ function drawGPSMinimap(time) {
     ctx.arc(targetPos.x, targetPos.y, 4 * pulseFactor, 0, Math.PI * 2);
     ctx.fill();
     
-    ctx.shadowBlur = 0; // Reset shadow
+    ctx.shadowBlur = 0;
 }
 
 // Render loop de Three.js (a 60 FPS fijos)
